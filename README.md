@@ -1,2 +1,2 @@
 # irc-flock
-irc for flock
+irc flock
