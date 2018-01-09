@@ -8,7 +8,10 @@ import org.kitteh.irc.client.library.feature.auth.SaslPlain
 fun main(args: Array<String>) {
     println("Hello, World")
     Main()
-//    val client = Client.builder().nick("nick").serverHost("irc.freenode.net").build()
+//    System.setProperty("socksProxyHost", "localhost")
+//    System.setProperty("socksProxyPort", "9050")
+//    val client = Client.builder().nick("nicki").serverHost("irc.freenode.net").build()
+//    val client = Client.builder().nick("nicki").serverHost("freenodeok2gncmy.onion").build()
 //    client.authManager.addProtocol(SaslPlain(client, "amansinghal", "password"))
 //    client.connect()
 //    client.setInputListener { it -> println(it) }

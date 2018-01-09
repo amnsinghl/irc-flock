@@ -34,6 +34,7 @@ class Main {
             when (command) {
                 "login" -> {
                     val text = commandSplit[1]
+
                     val split = text.split(" ")
                     register(slash.userId, split[0], split[1]).onSuccess { client ->
                         sendSelfVisiblefMessage(slash.userId, slash.chat, "Login successful")
@@ -123,7 +124,6 @@ class Main {
     }
 
     class IrcListener(val userId: String, val store: Jedis) {
-
 
         @Handler(delivery = Invoke.Asynchronously)
         fun onConnectedEvent(v: ClientConnectionEstablishedEvent) {

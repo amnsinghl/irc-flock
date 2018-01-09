@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
 
@@ -7,7 +9,6 @@
     <artifactId>flock-irc</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
-
     <name>com.flock.irc flock-irc</name>
 
     <properties>
@@ -16,6 +17,9 @@
         <junit.version>4.12</junit.version>
     </properties>
 
+    <modules>
+        <module>KittehIRCClientLib</module>
+    </modules>
     <repositories>
         <repository>
             <id>jitpack.io</id>
@@ -46,11 +50,6 @@
             <version>v1.3</version>
         </dependency>
         <dependency>
-            <groupId>org.kitteh.irc</groupId>
-            <artifactId>client-lib</artifactId>
-            <version>4.0.0</version>
-        </dependency>
-        <dependency>
             <groupId>redis.clients</groupId>
             <artifactId>jedis</artifactId>
             <version>2.9.0</version>
@@ -66,6 +65,11 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j-impl</artifactId>
             <version>2.10.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.kitteh.irc</groupId>
+            <artifactId>client-lib</artifactId>
+            <version>4.0.7-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

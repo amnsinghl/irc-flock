@@ -48,6 +48,7 @@ import java.security.interfaces.ECPublicKey
 
 class IrcClient(private val userId: String, listener: Main.IrcListener, private val store: Jedis) {
     val client = Client.builder().serverHost("irc.freenode.net").build().apply {
+//        val client = Client.builder().serverHost("freenodeok2gncmy.onion").build().apply {
         eventManager.registerEventListener(listener)
     }
 
