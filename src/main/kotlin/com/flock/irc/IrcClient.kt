@@ -8,7 +8,7 @@ import org.kitteh.irc.client.library.feature.auth.SaslPlain
 import java.security.interfaces.ECPrivateKey
 import java.security.interfaces.ECPublicKey
 
-class IrcClient(private val userId: String, listener: Main.IrcListener, private val store: Store) {
+class IrcClient(private val userId: String, listener: App.IrcListener, private val store: Store) {
     val client = Client.builder().serverHost("irc.freenode.net").build().apply {
         eventManager.registerEventListener(listener)
     }
