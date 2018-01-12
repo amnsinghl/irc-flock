@@ -9,8 +9,8 @@ A flock app to connect a flock channel with an irc channel
 5. Create a new outgoing webhook from [here](https://admin.flock.com/#!/webhooks/add/outgoing)
 6. Select your channel that you want link and set the Callback URL to `https://<server domain>/message`
 7. Take a note of the `Token` generated here, as this will be passed as param later on.
-8. Clone and run the project using [run instructions](), and pass all the requrired params.
-9. After successfuly running the app follow [post running steps](Post Running Steps)
+8. Clone and run the project using [run instructions](#run), and pass all the requrired params.
+9. After successfuly running the app follow [post running steps](#post-running-steps)
 
 # Run
 ### Dependencies:
