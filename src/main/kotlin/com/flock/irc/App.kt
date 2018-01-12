@@ -84,6 +84,10 @@ class App(private val store: Store, appId: String, appSecret: String, private va
         }
         Spark.post("/message") { req, res ->
             println("message received")
+            if (req.queryParams("token") != webHookToken) {
+                println("invalid webhook token")
+                return@post "NOT OK"
+            }
             val body = req.body()!!
             val message = gson.fromJson<Message>(body, Message::class.java)!!
             getIrcClient(message.from).onSuccess { ircClient ->
