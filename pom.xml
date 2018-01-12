@@ -17,9 +17,9 @@
         <junit.version>4.12</junit.version>
     </properties>
 
-    <modules>
-        <module>KittehIRCClientLib</module>
-    </modules>
+    <!--<modules>-->
+        <!--<module>KittehIRCClientLib</module>-->
+    <!--</modules>-->
     <repositories>
         <repository>
             <id>jitpack.io</id>
@@ -69,7 +69,12 @@
         <dependency>
             <groupId>org.kitteh.irc</groupId>
             <artifactId>client-lib</artifactId>
-            <version>4.0.7-SNAPSHOT</version>
+            <version>4.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>23.6-jre</version>
         </dependency>
     </dependencies>
 

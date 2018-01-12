@@ -2,24 +2,33 @@ package com.flock.irc
 
 import com.flock.EventHandlerClient
 import com.flock.api.Chat
+import com.flock.model.Message
 import com.flock.model.SendAs
 import com.flock.model.SendMessageOptionalParams
 import com.flock.model.ToastMessage
 import com.google.common.util.concurrent.FutureCallback
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import com.google.gson.Gson
 import net.engio.mbassy.listener.Handler
 import net.engio.mbassy.listener.Invoke
 import org.kitteh.irc.client.library.event.channel.ChannelMessageEvent
 import org.kitteh.irc.client.library.event.client.ClientConnectionEstablishedEvent
-import redis.clients.jedis.Jedis
 import spark.Spark
 import java.lang.Exception
+import java.util.*
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+
+private val executor = Executors.newScheduledThreadPool(10)
 
 class Main {
-    private val store: Jedis = Jedis("127.0.0.1")
+    private val store: Store = JedisStore("127.0.0.1")
     private val eventHandler: EventHandlerClient = EventHandlerClient("05bf2a80-19e8-46bc-84de-62c24e667836", "b9c5a695-0855-4c30-a4f4-c8da4c89cd53")
     private val ircClientMap: MutableMap<String, IrcClient> = HashMap()
+    private val gson = Gson()
+    private val queue = ConcurrentLinkedQueue<String>()
 
     init {
         println("ping " + store.ping())
@@ -34,7 +43,6 @@ class Main {
             when (command) {
                 "login" -> {
                     val text = commandSplit[1]
-
                     val split = text.split(" ")
                     register(slash.userId, split[0], split[1]).onSuccess { client ->
                         sendSelfVisiblefMessage(slash.userId, slash.chat, "Login successful")
@@ -45,15 +53,6 @@ class Main {
                     authenticate(slash.userId).onSuccess {
                         sendSelfVisiblefMessage(slash.userId, slash.chat, "Authentication successful")
                     }
-                }
-                "sendmessage" -> {
-                    val text = commandSplit[1]
-                    getIrcClient(slash.userId).onSuccess { ircClient ->
-                        val channelName = store[slash.chat + "channelName"]
-                        ircClient!!.client.addChannel(channelName)
-                        ircClient.client.sendMessage(channelName, text)
-                    }
-
                 }
                 "setchannel" -> {
                     if (store.exists(slash.chat + "channelName")) {
@@ -84,6 +83,19 @@ class Main {
                 ToastMessage().text(e.message)
             }
         }
+        Spark.post("/message") { req, res ->
+            println("message received")
+            val body = req.body()!!
+            val message = gson.fromJson<Message>(body, Message::class.java)!!
+            getIrcClient(message.from).onSuccess { ircClient ->
+                if (!isInQueue(ircClient!!.client.nick, message.text)) {
+                    val channelName = store[message.to + "channelName"]!!
+                    ircClient.client.addChannel(channelName)
+                    ircClient.client.sendMessage(channelName, message.text)
+                }
+            }
+            return@post "OK"
+        }
     }
 
     fun getIrcClient(userId: String): ListenableFuture<IrcClient> {
@@ -96,8 +108,6 @@ class Main {
 
     private val helpText = StringBuilder().apply {
         appendln("/irc login <username> <password>")
-        appendln("/irc authenticate")
-        appendln("/irc sendmessage <message>")
         appendln("/irc setchannel <irc channel name>")
     }.toString()
 
@@ -105,25 +115,43 @@ class Main {
     fun sendSelfVisiblefMessage(userId: String, channelId: String, text: String) {
         Chat.sendMessage(store[userId + "token"], channelId, text,
                 SendMessageOptionalParams().visibleTo(listOf(userId))
-                        .sendAs(SendAs().name("Irc Bot").profileImage("https://blog.openshift.com/wp-content/uploads/imported/alphie_hello_cloud.png")))
+                        .sendAs(SendAs().name("Irc Bot")
+                                .profileImage("https://blog.openshift.com/wp-content/uploads/imported/alphie_hello_cloud.png")))
     }
 
 
     fun register(userId: String, userName: String, password: String): ListenableFuture<IrcClient> {
-        val ircClient = IrcClient(userId, IrcListener(userId, store), store)
+        val ircClient = IrcClient(userId, IrcListener(userId), store)
         ircClient.setUserNamePass(userName, password)
         ircClientMap[userId] = ircClient
         return ircClient.connect()
     }
 
     fun authenticate(userId: String): ListenableFuture<IrcClient> {
-        val ircClient = IrcClient(userId, IrcListener(userId, store), store)
+        val ircClient = IrcClient(userId, IrcListener(userId), store)
         ircClient.authenticateViaSasl()
         ircClientMap[userId] = ircClient
         return ircClient.connect()
     }
 
-    class IrcListener(val userId: String, val store: Jedis) {
+    fun addToQueue(senderNick: String, message: String) {
+        if (queue.size > 10) {
+            queue.poll()
+        }
+        queue.add(senderNick + message)
+    }
+
+
+    fun isInQueue(senderNick: String, message: String): Boolean {
+        return queue.contains(senderNick + message).apply {
+            if (!this) {
+                addToQueue(senderNick, message)
+            }
+        }
+    }
+
+
+    inner class IrcListener(val userId: String) {
 
         @Handler(delivery = Invoke.Asynchronously)
         fun onConnectedEvent(v: ClientConnectionEstablishedEvent) {
@@ -132,18 +160,21 @@ class Main {
 
         @Handler(delivery = Invoke.Asynchronously)
         fun onChannelMessageEvent(v: ChannelMessageEvent) {
+            if (isInQueue(v.actor.nick, v.message)) {
+                return
+            }
             if (store.exists(userId + v.channel.name)) {
-                Chat.sendMessage(store[userId + "token"], store[userId + v.channel.name], v.message, SendMessageOptionalParams().sendAs(getSendas(v.actor.nick)))
+                Chat.sendMessage(store[userId + "token"], store[userId + v.channel.name], v.message,
+                        SendMessageOptionalParams().sendAs(getSendas(v.actor.nick)))
+
             }
         }
 
         fun getSendas(name: String): SendAs {
-            return SendAs().name(name).profileImage("https://api.adorable.io/avatars/100/$name.png")
+            return SendAs().name(name).profileImage("https://robohash.org/$name")
         }
     }
-
 }
-
 
 fun <U> ListenableFuture<U>.onSuccess(runnable: (U?) -> Unit): ListenableFuture<U> =
         this.apply { addCallback(success = runnable) }
@@ -153,7 +184,8 @@ fun <U> ListenableFuture<U>.onFailure(runnable: (Throwable) -> Unit): Listenable
 
 fun <U> ListenableFuture<U>.addCallback(success: (U?) -> Unit = {},
                                         failure: (Throwable) -> Unit = {}) {
-    Futures.addCallback(this, object : FutureCallback<U> {
+    val tFuture = Futures.withTimeout(this, 30, TimeUnit.SECONDS, executor)
+    Futures.addCallback(tFuture, object : FutureCallback<U> {
         override fun onFailure(p0: Throwable) {
             failure(p0)
         }
